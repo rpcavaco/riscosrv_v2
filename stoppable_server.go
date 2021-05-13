@@ -1,13 +1,13 @@
-package main 
+package main
 
 import (
-	"net"
-	"time"
 	"fmt"
+	"net"
 	"sync/atomic"
+	"time"
+
 	"github.com/valyala/fasthttp"
 )
-
 
 // baseado no código de valyala no issue #66 de fasthttp
 type GracefulListener struct {
@@ -82,7 +82,6 @@ func (ln *GracefulListener) waitForZeroConns() error {
 		return fmt.Errorf("cannot complete graceful shutdown in %s", ln.maxWaitTime)
 	}
 
-	return nil
 }
 
 func (ln *GracefulListener) closeConn() {
@@ -92,7 +91,6 @@ func (ln *GracefulListener) closeConn() {
 		close(ln.done)
 	}
 }
-
 
 type gracefulConn struct {
 	net.Conn
@@ -129,7 +127,7 @@ func AsyncListenAndServe(addr string, handler fasthttp.RequestHandler, maxWaitTi
 	}
 	LogInfof("starting fasthttp server on %s (%s)", addr, purpose)
 	go doServe(s, gln, purpose)
-	
+
 	return err, gln
 }
 
