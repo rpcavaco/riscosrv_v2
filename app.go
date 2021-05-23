@@ -599,6 +599,7 @@ func (s *appServer) checkValueCSVHandler(hsctx *fasthttp.RequestCtx) {
 type doGetElem struct {
 	Alias      string   `json:"alias"`
 	Filtervals []string `json:"filtervals"`
+	Pbuffer    float32  `json:"pbuffer"`
 	Lang       string   `json:"lang"`
 }
 
@@ -625,7 +626,7 @@ func (s *appServer) doGetHandler(hsctx *fasthttp.RequestCtx) {
 		} else {
 			qryname = "initprepared.doget"
 
-			row := s.db_connpool.QueryRow(qryname, ge.Alias, ge.Filtervals, ge.Lang)
+			row := s.db_connpool.QueryRow(qryname, ge.Alias, ge.Filtervals, ge.Pbuffer, ge.Lang)
 			err := row.Scan(&outj)
 			if err != nil {
 				LogErrorf("doGetHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
