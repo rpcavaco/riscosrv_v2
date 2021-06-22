@@ -12,7 +12,6 @@ import (
 
 	//"github.com/satori/go.uuid"
 
-	"github.com/jackc/pgx"
 	"github.com/valyala/fasthttp"
 
 	//"github.com/smallfish/simpleyaml"
@@ -79,7 +78,6 @@ func (s *appServer) featsHandler(hsctx *fasthttp.RequestCtx) {
 	var vcnt, chunks, chunk int64
 	var ferr error
 	var outj string
-	var tx *pgx.Tx
 
 	if string(hsctx.Method()) == "OPTIONS" {
 
@@ -125,38 +123,15 @@ func (s *appServer) featsHandler(hsctx *fasthttp.RequestCtx) {
 				row := s.db_connpool.QueryRow(qryname, sreqid, lname, chunks, vcnt, chunk)
 				err := row.Scan(&outj)
 				if err != nil {
+
 					LogErrorf("featsHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
 					hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
+
 				} else {
 
-					tx, err = s.db_connpool.Begin()
-					if err != nil {
+					fmt.Fprintf(hsctx, outj)
+					hsctx.SetContentType("application/json; charset=utf8")
 
-						LogErrorf("featsHandler open transaction for clrreq error %s", err.Error())
-						hsctx.Error("transaction begin error", fasthttp.StatusInternalServerError)
-
-					} else {
-
-						defer tx.Rollback()
-
-						// limpeza registos temporários de risco_request e risco_request_geometry
-						qryname := "initprepared.clrreq"
-						_, serr := s.db_connpool.Exec(qryname, sreqid, lname)
-						if serr != nil {
-							LogErrorf("featsHandler clrreq exec error %s", serr.Error())
-							hsctx.Error("clrreq exec error", fasthttp.StatusInternalServerError)
-						}
-						// Fechar transacção
-						err = tx.Commit()
-						if err != nil {
-							LogErrorf("featsHandler clrreq commit transaction error %s", err.Error())
-							hsctx.Error("clrreq commit error", fasthttp.StatusInternalServerError)
-						}
-
-						fmt.Fprintf(hsctx, outj)
-						hsctx.SetContentType("application/json; charset=utf8")
-
-					}
 				}
 			}
 		}
@@ -226,170 +201,6 @@ func (s *appServer) statsHandler(hsctx *fasthttp.RequestCtx) {
 
 	}
 }
-
-/*
-func (s *appServer) customgjsonHandler(hsctx *fasthttp.RequestCtx) {
-	s.geojsonGenericHandler(hsctx, true)
-}
-
-func (s *appServer) geojsonHandler(hsctx *fasthttp.RequestCtx) {
-	s.geojsonGenericHandler(hsctx, false)
-}
-
-func (s *appServer) geojsonGenericHandler(hsctx *fasthttp.RequestCtx, iscustom bool) {
-
-	var swlon, swlat, nelon, nelat float64
-	var maxft int
-	var ferr error
-	var outj, lname, qryname, custstr string
-	var row *pgx.Row
-
-	sswlon := hsctx.QueryArgs().Peek("w")
-	sswlat := hsctx.QueryArgs().Peek("s")
-	snelon := hsctx.QueryArgs().Peek("e")
-	snelat := hsctx.QueryArgs().Peek("n")
-	smaxfeats := hsctx.QueryArgs().Peek("maxfeats")
-	filter := hsctx.QueryArgs().Peek("filter")
-
-	maxft, ferr = strconv.Atoi(string(smaxfeats))
-	if ferr != nil {
-		maxft = 1000
-	}
-	if maxft < 1 {
-		maxft = 1000
-	}
-	swlon, ferr = strconv.ParseFloat(string(sswlon), 64)
-	if ferr == nil {
-		swlat, ferr = strconv.ParseFloat(string(sswlat), 64)
-	}
-	if ferr == nil {
-		nelon, ferr = strconv.ParseFloat(string(snelon), 64)
-	}
-	if ferr == nil {
-		nelat, ferr = strconv.ParseFloat(string(snelat), 64)
-	}
-	if ferr != nil {
-		LogErrorf("geojsonHandler parse params error %s", ferr.Error())
-		hsctx.Error("geojsonHandler parse params error", fasthttp.StatusInternalServerError)
-	} else {
-		_lname := hsctx.QueryArgs().Peek("lname")
-		if len(_lname) < 1 {
-			LogErrorf("geojsonHandler parse params error, no layer name")
-			hsctx.Error("geojsonHandler parse params error, no layer name", fasthttp.StatusInternalServerError)
-		} else {
-			lname = string(_lname)
-
-			if iscustom {
-				custstr = "custom "
-				qryname = "initprepared.geojson"
-			} else {
-				custstr = ""
-				qryname = "initprepared.getgeojson"
-			}
-
-			if len(filter) > 2 {
-				LogTwitf("%sgeojson: %s %f %f %f %f %d %s", custstr, lname, swlon, swlat, nelon, nelat, maxft, filter)
-				row = s.db_connpool.QueryRow(qryname, lname, swlon, swlat, nelon, nelat, maxft, filter)
-			} else {
-				LogTwitf("%sgeojson: %s %f %f %f %f %d", custstr, lname, swlon, swlat, nelon, nelat, maxft)
-				row = s.db_connpool.QueryRow(qryname, lname, swlon, swlat, nelon, nelat, maxft, "")
-			}
-
-			err := row.Scan(&outj)
-			if err != nil {
-				LogErrorf("geojsonHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
-				hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
-			} else {
-				fmt.Fprintf(hsctx, outj)
-				hsctx.SetContentType("application/json; charset=utf8")
-			}
-		}
-	}
-}
-
-func (s *appServer) customgjsonQryHandler(hsctx *fasthttp.RequestCtx) {
-	s.geojsonQryGenericHandler(hsctx, true)
-}
-*/
-
-/* ----
-func (s* appServer) geojsonQryHandler(hsctx *fasthttp.RequestCtx) {
-	s.geojsonQryGenericHandler(hsctx, false)
-} -----
-*/
-
-/*
-func (s *appServer) geojsonQryGenericHandler(hsctx *fasthttp.RequestCtx, iscustom bool) {
-
-	var maxft int
-	var ferr error
-	var outj, lname, qryname string
-	var projected bool
-
-	sjsonfilter := hsctx.QueryArgs().Peek("jsonfilter")
-	smaxfeats := hsctx.QueryArgs().Peek("maxfeats")
-
-	maxft, ferr = strconv.Atoi(string(smaxfeats))
-	if ferr != nil {
-		maxft = 1000
-	}
-	if maxft < 1 {
-		maxft = 1000
-	}
-
-	_lname := hsctx.QueryArgs().Peek("lname")
-	_projected := hsctx.QueryArgs().Peek("proj")
-
-	projected = false
-	if len(_projected) > 0 {
-		_projected := strings.ToLower(string(_projected))
-		if _projected == "true" {
-			projected = true
-		}
-	}
-
-	if len(_lname) < 1 {
-		LogErrorf("geojsonHandler parse params error, no layer name")
-		hsctx.Error("geojsonHandler parse params error, no layer name", fasthttp.StatusInternalServerError)
-	} else {
-		if len(sjsonfilter) < 1 {
-			LogErrorf("geojsonHandler parse params error, no json filter")
-			hsctx.Error("geojsonHandler parse params error, no json filter", fasthttp.StatusInternalServerError)
-		} else {
-			lname = string(_lname)
-			if iscustom {
-				if projected {
-					qryname = "initprepared.qrycustomgeojson"
-				} else {
-					qryname = "initprepared.qrycustomgeojsong"
-				}
-				LogTwitf("custom geojson qry: %s %s %d", lname, sjsonfilter, maxft)
-			}
-			/* ---
-				else {
-					if projected {
-						qryname = "initprepared.qrygeojson"
-					} else {
-						qryname = "initprepared.qrygeojsong"
-					}
-					LogTwitf("geojson: %s %s %d", lname, sjsonfilter, maxft)
-				} ----
-				* */
-/*
-			row := s.db_connpool.QueryRow(qryname, lname, sjsonfilter, maxft)
-			err := row.Scan(&outj)
-			if err != nil {
-				LogErrorf("geojsonHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
-				hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
-			} else {
-				fmt.Fprintf(hsctx, outj)
-				hsctx.SetContentType("application/json; charset=utf8")
-			}
-		}
-	}
-
-}
-*/
 
 /*
 type geoJSONSaveElem struct {
@@ -493,107 +304,8 @@ if len(_projected) > 0 {
 	}
 }
 
-func (s *appServer) jsonHandler(hsctx *fasthttp.RequestCtx) {
 
-	var outj, alias, qryname string
 
-	_alias := hsctx.QueryArgs().Peek("alias")
-	if len(_alias) < 1 {
-		LogErrorf("geojsonHandler parse params error, no alias name")
-		hsctx.Error("geojsonHandler parse params error, no alias name", fasthttp.StatusInternalServerError)
-	} else {
-
-		alias = string(_alias)
-
-		qryname = "initprepared.getjson"
-		LogTwitf("json qry: %s", alias)
-
-		row := s.db_connpool.QueryRow(qryname, alias)
-		err := row.Scan(&outj)
-		if err != nil {
-			LogErrorf("jsonHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
-			hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
-		} else {
-			fmt.Fprintf(hsctx, outj)
-			hsctx.SetContentType("application/json; charset=utf8")
-		}
-	}
-}
-
-func (s *appServer) checkValueHandler(hsctx *fasthttp.RequestCtx) {
-
-	var outj, alias, value, lang, qryname string
-
-	_alias := hsctx.QueryArgs().Peek("alias")
-	_value := hsctx.QueryArgs().Peek("value")
-	_lang := hsctx.QueryArgs().Peek("lang")
-	if len(_alias) < 1 || len(_value) < 1 {
-		LogErrorf("checkValueHandler parse params error, no alias name or no value")
-		hsctx.Error("checkValueHandler parse params error, no alias name or no value", fasthttp.StatusInternalServerError)
-	} else {
-
-		if len(_lang) < 1 {
-			lang = "en"
-		} else {
-			lang = string(_lang)
-		}
-
-		alias = string(_alias)
-		value = string(_value)
-
-		qryname = "initprepared.checkvalue"
-		LogTwitf("checkvalue qry: %s %s %s", alias, value, lang)
-
-		row := s.db_connpool.QueryRow(qryname, alias, value, lang)
-		err := row.Scan(&outj)
-		if err != nil {
-			LogErrorf("checkValueHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
-			hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
-		} else {
-			fmt.Fprintf(hsctx, outj)
-			hsctx.SetContentType("application/json; charset=utf8")
-		}
-	}
-}
-
-func (s *appServer) checkValueCSVHandler(hsctx *fasthttp.RequestCtx) {
-
-	var alias, value, lang, qryname string
-	var outj []byte
-
-	_alias := hsctx.QueryArgs().Peek("alias")
-	_value := hsctx.QueryArgs().Peek("value")
-	_lang := hsctx.QueryArgs().Peek("lang")
-	if len(_alias) < 1 || len(_value) < 1 {
-		LogErrorf("checkValueCSVHandler parse params error, no alias name or no value")
-		hsctx.Error("checkValueCSVHandler parse params error, no alias name or no value", fasthttp.StatusInternalServerError)
-	} else {
-
-		if len(_lang) < 1 {
-			lang = "en"
-		} else {
-			lang = string(_lang)
-		}
-
-		alias = string(_alias)
-		value = string(_value)
-
-		qryname = "initprepared.checkvaluecsv"
-		LogTwitf("checkvaluecsv qry: %s %s %s", alias, value, lang)
-
-		row := s.db_connpool.QueryRow(qryname, alias, value, lang)
-		err := row.Scan(&outj)
-		if err != nil {
-			LogErrorf("checkValueCSVHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
-			hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
-		} else {
-			hsctx.Response.Header.Set("Content-Disposition", "attachment; filename=checkvalue.csv")
-			hsctx.Response.Header.Set("Content-Type", "text/csv; charset=ISO-8859-1")
-			//hsctx.SetContentType("text/csv; charset=ISO-8859-1")
-			hsctx.Write(EncodeWindows1252(outj))
-		}
-	}
-}
 */
 
 type doGetElem struct {
@@ -656,23 +368,11 @@ func (s *appServer) hsmux(hsctx *fasthttp.RequestCtx) {
 		s.statsHandler(hsctx)
 	case "/feats":
 		s.featsHandler(hsctx)
-	/*case "/gjson":
-		s.geojsonHandler(hsctx)
-	case "/cgjson":
-		s.customgjsonHandler(hsctx)
-	case "/qrycgjson":
-		s.customgjsonQryHandler(hsctx)
-	case "/gjsonsave":
+	/*case "/gjsonsave":
 		s.geojsonSaveHandler(hsctx, true)
 	case "/gjsonsaveg":
 		s.geojsonSaveHandler(hsctx, false)
-	case "/json":
-		s.jsonHandler(hsctx)
-	case "/checkvalue":
-		s.checkValueHandler(hsctx)
-	case "/checkvaluecsv":
-		s.checkValueCSVHandler(hsctx)
-	//case "/totfin"*/
+	*/
 	//
 	default:
 		/*if validFileServerExtension(string(hsctx.Path())) {
