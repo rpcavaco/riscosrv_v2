@@ -12,6 +12,7 @@ import (
 
 	//"github.com/satori/go.uuid"
 
+	"github.com/jackc/pgx"
 	"github.com/valyala/fasthttp"
 
 	//"github.com/smallfish/simpleyaml"
@@ -202,11 +203,11 @@ func (s *appServer) statsHandler(hsctx *fasthttp.RequestCtx) {
 	}
 }
 
-/*
-type geoJSONSaveElem struct {
+type gJSONSaveElem struct {
 	Lname  string `json:"lname"`
 	Gisid  string `json:"gisid"`
 	Userid string `json:"userid"`
+	Epsg   int    `json:"epsg"`
 	Gjson  struct {
 		Type     string `json:"type"`
 		Geometry struct {
@@ -216,9 +217,9 @@ type geoJSONSaveElem struct {
 	} `json:"gjson"`
 }
 
-func (s *appServer) geojsonSaveHandler(hsctx *fasthttp.RequestCtx, p_projected bool) {
+func (s *appServer) geojsonSaveHandler(hsctx *fasthttp.RequestCtx) {
 
-	var gj geoJSONSaveElem
+	var gj gJSONSaveElem
 	var qryname, sgjson, gid string
 	var err error
 	var b []byte
@@ -230,18 +231,7 @@ func (s *appServer) geojsonSaveHandler(hsctx *fasthttp.RequestCtx, p_projected b
 		hsctx.SetContentType("text/plain; charset=utf8")
 
 	} else {
-*/
-/* ---
-_projected := hsctx.QueryArgs().Peek("proj")
 
-projected = false
-if len(_projected) > 0 {
-	_projected := strings.ToLower(string(_projected))
-	if _projected == "true" {
-		projected = true
-	} ----
-}*/
-/*
 		LogInfof("geojsonSaveHandler, body:'%s'", hsctx.PostBody())
 
 		if err = json.Unmarshal(hsctx.PostBody(), &gj); err != nil {
@@ -250,11 +240,7 @@ if len(_projected) > 0 {
 			hsctx.Error("unmarshal error", fasthttp.StatusInternalServerError)
 
 		} else {
-			if p_projected {
-				qryname = "initprepared.geojsonsave"
-			} else {
-				qryname = "initprepared.geojsonsaveg"
-			}
+			qryname = "initprepared.gjsonsave"
 
 			b, err = json.Marshal(gj.Gjson)
 			if err != nil {
@@ -303,10 +289,6 @@ if len(_projected) > 0 {
 		}
 	}
 }
-
-
-
-*/
 
 type doGetElem struct {
 	Alias      string   `json:"alias"`

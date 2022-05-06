@@ -1,13 +1,15 @@
 ---
 initprepared:
   fullchunkcalc: >
-    select full_chunk_calc from risco_v2_publico_dev.full_chunk_calc($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    select full_chunk_calc from riscov2_dev.full_chunk_calc($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
   getfeats: >
-    select quantize2json from risco_v2_publico_dev.quantize2json($1, $2, $3, $4, $5)
+    select quantize2json from riscov2_dev.quantize2json($1, $2, $3, $4, $5)
   clrreq: >
-    select risco_v2_publico_dev.clrreq($1, $2)
+    select riscov2_dev.clrreq($1, $2)
   doget: >
-    select do_get from risco_v2_publico_dev.do_get($1, $2, $3)
-
+    select do_get from riscov2_dev.do_get($1, $2, $3)
+  gjsonsave: >
+    select gjsonsave from risco.gjsonsave($1, $2, $3, $4, $5)
+ 
 
 
