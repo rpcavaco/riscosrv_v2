@@ -8,6 +8,8 @@ initprepared:
     select riscov2_dev.clrreq($1, $2)
   doget: >
     select do_get from riscov2_dev.do_get($1, $2, $3)
+  astats: >
+    select alphastats from risco_v2_dev.alphastats($1, $2, $3)
   gjsonsave: >
     select gjsonsave from risco.gjsonsave($1, $2, $3, $4, $5)
  

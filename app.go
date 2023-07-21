@@ -333,6 +333,48 @@ func (s *appServer) doGetHandler(hsctx *fasthttp.RequestCtx) {
 	}
 }
 
+type alphaStatsElem struct {
+	Key   string `json:"key"`
+	Field string `json:"field"`
+	Mode  string `json:"mode"`
+}
+
+func (s *appServer) alphaStatsHandler(hsctx *fasthttp.RequestCtx) {
+
+	var ase alphaStatsElem
+	var qryname string //, sgjson, gid string
+	var outj []byte
+	var err error
+
+	if string(hsctx.Method()) == "OPTIONS" {
+
+		fmt.Fprintf(hsctx, "ok")
+		hsctx.SetContentType("text/plain; charset=utf8")
+
+	} else {
+		LogInfof("alphaStatsHandler, body:'%s'", hsctx.PostBody())
+
+		if err = json.Unmarshal(hsctx.PostBody(), &ase); err != nil {
+
+			LogErrorf("alphaStatsHandler generic unmarshal error: %s body:'%s'", err.Error(), hsctx.PostBody())
+			hsctx.Error("unmarshal error", fasthttp.StatusInternalServerError)
+
+		} else {
+			qryname = "initprepared.astats"
+
+			row := s.db_connpool.QueryRow(qryname, ase.Key, ase.Field, ase.Mode)
+			err := row.Scan(&outj)
+			if err != nil {
+				LogErrorf("alphaStatsHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
+				hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
+			} else {
+				fmt.Fprintf(hsctx, string(outj))
+				hsctx.SetContentType("application/json; charset=utf8")
+			}
+		}
+	}
+}
+
 func (s *appServer) testRequestHandler(hsctx *fasthttp.RequestCtx) {
 
 	fmt.Fprintf(hsctx, "Hello, world!\n\n")
@@ -350,6 +392,8 @@ func (s *appServer) hsmux(hsctx *fasthttp.RequestCtx) {
 		s.statsHandler(hsctx)
 	case "/feats":
 		s.featsHandler(hsctx)
+	case "/astats":
+		s.alphaStatsHandler(hsctx)
 	/*case "/gjsonsave":
 		s.geojsonSaveHandler(hsctx, true)
 	case "/gjsonsaveg":
