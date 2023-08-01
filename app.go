@@ -334,9 +334,9 @@ func (s *appServer) doGetHandler(hsctx *fasthttp.RequestCtx) {
 }
 
 type alphaStatsElem struct {
-	Key   string `json:"key"`
-	Field string `json:"field"`
-	Mode  string `json:"mode"`
+	Key     string `json:"key"`
+	Options struct {
+	} `json:"options"`
 }
 
 func (s *appServer) alphaStatsHandler(hsctx *fasthttp.RequestCtx) {
@@ -362,7 +362,7 @@ func (s *appServer) alphaStatsHandler(hsctx *fasthttp.RequestCtx) {
 		} else {
 			qryname = "initprepared.astats"
 
-			row := s.db_connpool.QueryRow(qryname, ase.Key, ase.Field, ase.Mode)
+			row := s.db_connpool.QueryRow(qryname, ase.Key, ase.Options)
 			err := row.Scan(&outj)
 			if err != nil {
 				LogErrorf("alphaStatsHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
