@@ -1,0 +1,5 @@
+
+POST https://geo.cm-porto.net/riscosrv_v2_dev/astats HTTP/1.1
+content-type: application/json
+
+{"key":"sv_sinais","options":{}}
