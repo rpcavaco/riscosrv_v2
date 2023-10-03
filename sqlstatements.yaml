@@ -10,6 +10,8 @@ initprepared:
     select do_get from riscov2_dev.do_get($1, $2, $3, $4, $5)
   astats: >
     select alphastats from risco_v2_dev.alphastats($1, $2)
+  binning: >
+    select binning from risco_v2_dev.binning($1, $2, $3)
   gjsonsave: >
     select gjsonsave from risco.gjsonsave($1, $2, $3, $4, $5)
  

@@ -337,6 +337,9 @@ func (s *appServer) doGetHandler(hsctx *fasthttp.RequestCtx) {
 type alphaStatsElem struct {
 	Key     string `json:"key"`
 	Options struct {
+		Outsrid     int    `json:"outsrid,omitempty"`
+		Clustersize int    `json:"clustersize,omitempty"`
+		Col         string `json:"col,omitempty"`
 	} `json:"options"`
 }
 
@@ -353,6 +356,7 @@ func (s *appServer) alphaStatsHandler(hsctx *fasthttp.RequestCtx) {
 		hsctx.SetContentType("text/plain; charset=utf8")
 
 	} else {
+
 		LogInfof("alphaStatsHandler, body:'%s'", hsctx.PostBody())
 
 		if err = json.Unmarshal(hsctx.PostBody(), &ase); err != nil {
@@ -361,12 +365,57 @@ func (s *appServer) alphaStatsHandler(hsctx *fasthttp.RequestCtx) {
 			hsctx.Error("unmarshal error", fasthttp.StatusInternalServerError)
 
 		} else {
+
 			qryname = "initprepared.astats"
 
 			row := s.db_connpool.QueryRow(qryname, ase.Key, ase.Options)
 			err := row.Scan(&outj)
 			if err != nil {
 				LogErrorf("alphaStatsHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
+				hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
+			} else {
+				fmt.Fprintf(hsctx, string(outj))
+				hsctx.SetContentType("application/json; charset=utf8")
+			}
+		}
+	}
+}
+
+type binnParamsElem struct {
+	Key      string  `json:"key"`
+	Geomtype string  `json:"geomtype"`
+	Radius   float64 `json:"radius"`
+}
+
+func (s *appServer) binningHandler(hsctx *fasthttp.RequestCtx) {
+
+	var bpe binnParamsElem
+	var qryname string
+	var outj []byte
+	var err error
+
+	if string(hsctx.Method()) == "OPTIONS" {
+
+		fmt.Fprintf(hsctx, "ok")
+		hsctx.SetContentType("text/plain; charset=utf8")
+
+	} else {
+
+		LogInfof("binningHandler, body:'%s'", hsctx.PostBody())
+
+		if err = json.Unmarshal(hsctx.PostBody(), &bpe); err != nil {
+
+			LogErrorf("binningHandler generic unmarshal error: %s body:'%s'", err.Error(), hsctx.PostBody())
+			hsctx.Error("unmarshal error", fasthttp.StatusInternalServerError)
+
+		} else {
+
+			qryname = "initprepared.binning"
+
+			row := s.db_connpool.QueryRow(qryname, bpe.Key, bpe.Geomtype, bpe.Radius)
+			err := row.Scan(&outj)
+			if err != nil {
+				LogErrorf("binningHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
 				hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
 			} else {
 				fmt.Fprintf(hsctx, string(outj))
