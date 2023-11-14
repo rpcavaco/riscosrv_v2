@@ -182,13 +182,13 @@ func (s *appServer) statsHandler(hsctx *fasthttp.RequestCtx) {
 				hsctx.Error("statsHandler parse params error, no map name", fasthttp.StatusInternalServerError)
 			} else {
 				vizlayers := hsctx.QueryArgs().Peek("vizlrs")
-				filter_lname := hsctx.QueryArgs().Peek("flname")
+				/* filter_lname := hsctx.QueryArgs().Peek("flname")
 				filter_fname := hsctx.QueryArgs().Peek("ffname")
-				filter_value := hsctx.QueryArgs().Peek("fval")
+				filter_value := hsctx.QueryArgs().Peek("fval") */
 
 				qryname := "initprepared.fullchunkcalc"
-				LogTwitf("stats - cx:%f cy:%f pixsz:%f w:%f h:%f map:%s vizlyrs:%s filt_lname:%s fname:%s value:%s", cenx, ceny, pixsz, wid, hei, mapname, vizlayers, filter_lname, filter_fname, filter_value)
-				row := s.db_connpool.QueryRow(qryname, cenx, ceny, pixsz, wid, hei, mapname, vizlayers, filter_lname, filter_fname, filter_value)
+				LogTwitf("stats - cx:%f cy:%f pixsz:%f w:%f h:%f map:%s vizlyrs:%s", cenx, ceny, pixsz, wid, hei, mapname, vizlayers)
+				row := s.db_connpool.QueryRow(qryname, cenx, ceny, pixsz, wid, hei, mapname, vizlayers)
 				err := row.Scan(&outj)
 				if err != nil {
 					LogErrorf("statsHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
