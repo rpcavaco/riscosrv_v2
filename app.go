@@ -203,12 +203,13 @@ func (s *appServer) statsHandler(hsctx *fasthttp.RequestCtx) {
 	}
 }
 
+/*
 type gJSONSaveElem struct {
-	Lname  string `json:"lname"`
-	Gisid  string `json:"gisid"`
-	Userid string `json:"userid"`
-	Epsg   int    `json:"epsg"`
-	Gjson  struct {
+	Lname     string `json:"lname"`
+	Gisid     string `json:"gisid"`
+	SessionId string `json:"sessionid"`
+	Crs       int    `json:"crs"`
+	Gjson     struct {
 		Type     string `json:"type"`
 		Geometry struct {
 			Type        string    `json:"type"`
@@ -217,7 +218,7 @@ type gJSONSaveElem struct {
 	} `json:"gjson"`
 }
 
-func (s *appServer) geojsonSaveHandler(hsctx *fasthttp.RequestCtx) {
+func (s *appServer) saveHandlerOld(hsctx *fasthttp.RequestCtx) {
 
 	var gj gJSONSaveElem
 	var qryname, sgjson, gid string
@@ -232,7 +233,7 @@ func (s *appServer) geojsonSaveHandler(hsctx *fasthttp.RequestCtx) {
 
 	} else {
 
-		LogInfof("geojsonSaveHandler, body:'%s'", hsctx.PostBody())
+		LogInfof("saveHandler, body:'%s'", hsctx.PostBody())
 
 		if err = json.Unmarshal(hsctx.PostBody(), &gj); err != nil {
 
@@ -240,7 +241,11 @@ func (s *appServer) geojsonSaveHandler(hsctx *fasthttp.RequestCtx) {
 			hsctx.Error("unmarshal error", fasthttp.StatusInternalServerError)
 
 		} else {
-			qryname = "initprepared.gjsonsave"
+
+			rub := hsctx.Request.Header.Peek("Remote-User")
+			ru := string(rub)
+
+			qryname = "initprepared.save"
 
 			b, err = json.Marshal(gj.Gjson)
 			if err != nil {
@@ -251,7 +256,7 @@ func (s *appServer) geojsonSaveHandler(hsctx *fasthttp.RequestCtx) {
 			} else {
 
 				sgjson = string(b)
-				LogTwitf("lname:%s  gisid:%s userid:%s gjson:%s", gj.Lname, gj.Gisid, gj.Userid, sgjson)
+				LogTwitf("lname:%s  gisid:%s session:%s gjson:%s ru:%s", gj.Lname, gj.Gisid, gj.SessionId, sgjson, ru)
 
 				// Abrir transacção
 				tx, err = s.db_connpool.Begin()
@@ -265,7 +270,7 @@ func (s *appServer) geojsonSaveHandler(hsctx *fasthttp.RequestCtx) {
 					defer tx.Rollback()
 
 					// inserir local
-					row := s.db_connpool.QueryRow(qryname, gj.Lname, gj.Gisid, gj.Userid, sgjson)
+					row := s.db_connpool.QueryRow(qryname, gj.Lname, gj.Gisid, gj.SessionId, ru, sgjson)
 					err = row.Scan(&gid)
 					if err != nil {
 						LogErrorf("geojsonSaveHandler error %s, stmt name: '%s'", err.Error(), qryname)
@@ -279,6 +284,121 @@ func (s *appServer) geojsonSaveHandler(hsctx *fasthttp.RequestCtx) {
 						} else {
 							fmt.Fprintf(hsctx, gid)
 							hsctx.SetContentType("text/plain; charset=utf8")
+						}
+					}
+
+				}
+
+			}
+
+		}
+	}
+}
+*/
+
+type JSONSaveElem struct {
+	Lname       string `json:"lname"`
+	SessionId   string `json:"sessionid"`
+	Mapname     string `json:"mapname"`
+	Featholders []struct {
+		Gisid string `json:"gisid,omitempty"`
+		Feat  struct {
+			Type     string `json:"type"`
+			Geometry struct {
+				Type        string    `json:"type"`
+				Crs         int       `json:"crs"`
+				Coordinates []float64 `json:"coordinates"`
+			} `json:"geometry,omitempty"`
+			Properties map[string]interface{} `json:"properties,omitempty"`
+		} `json:"feat,omitempty"`
+	} `json:"featholders"`
+}
+
+type JSONSaveReturn struct {
+	State  string `json:"state"`
+	Gisid  string `json:"gisid,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
+func (s *appServer) saveHandler(hsctx *fasthttp.RequestCtx) {
+
+	var jse JSONSaveElem
+	var jsr []interface{}
+	var qryname, sjson string
+	var err error
+	var b []byte
+	var tx *pgx.Tx
+
+	if string(hsctx.Method()) == "OPTIONS" {
+
+		fmt.Fprintf(hsctx, "ok")
+		hsctx.SetContentType("text/plain; charset=utf8")
+
+	} else {
+
+		LogInfof("saveHandler, body:'%s'", hsctx.PostBody())
+
+		if err = json.Unmarshal(hsctx.PostBody(), &jse); err != nil {
+
+			LogErrorf("saveHandler generic unmarshal error: %s body:'%s'", err.Error(), hsctx.PostBody())
+			hsctx.Error("unmarshal error", fasthttp.StatusInternalServerError)
+
+		} else {
+
+			rub := hsctx.Request.Header.Peek("Remote-User")
+			ru := string(rub)
+
+			qryname = "initprepared.save"
+
+			b, err = json.Marshal(jse.Featholders)
+			if err != nil {
+
+				LogErrorf("json feature marshaling error %s", err.Error())
+				hsctx.Error("json feature marshaling error", fasthttp.StatusInternalServerError)
+
+			} else {
+
+				sjson = string(b)
+				LogTwitf("lname:%s session:%s map:%s feats.json:%s ru:%s", jse.Lname, jse.SessionId, jse.Mapname, sjson, ru)
+
+				// Abrir transacção
+				tx, err = s.db_connpool.Begin()
+				if err != nil {
+
+					LogErrorf("json insert open transaction error %s", err.Error())
+					hsctx.Error("transaction begin error", fasthttp.StatusInternalServerError)
+
+				} else {
+
+					defer tx.Rollback()
+
+					// inserir local
+					row := s.db_connpool.QueryRow(qryname, jse.Lname, jse.SessionId, sjson, jse.Mapname, ru)
+					err = row.Scan(&jsr)
+					if err != nil {
+						LogErrorf("saveHandler error %s, stmt name: '%s'", err.Error(), qryname)
+						hsctx.Error("db error", fasthttp.StatusInternalServerError)
+					} else {
+						// Fechar transacção
+						err = tx.Commit()
+						if err != nil {
+							LogErrorf("saveHandler commit transaction error %s", err.Error())
+							hsctx.Error("commit error error", fasthttp.StatusInternalServerError)
+						} else {
+
+							b, err = json.Marshal(jsr)
+							if err != nil {
+
+								LogErrorf("json save response marshaling error %s", err.Error())
+								hsctx.Error("json save response marshaling error", fasthttp.StatusInternalServerError)
+
+							} else {
+
+								fmt.Fprintf(hsctx, string(b))
+								hsctx.SetContentType("text/plain; charset=utf8")
+
+							}
+
 						}
 					}
 
@@ -444,6 +564,8 @@ func (s *appServer) hsmux(hsctx *fasthttp.RequestCtx) {
 		s.featsHandler(hsctx)
 	case "/astats":
 		s.alphaStatsHandler(hsctx)
+	case "/save":
+		s.saveHandler(hsctx)
 	/*case "/gjsonsave":
 		s.geojsonSaveHandler(hsctx, true)
 	case "/gjsonsaveg":
