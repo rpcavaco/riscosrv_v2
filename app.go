@@ -323,7 +323,7 @@ type JSONSaveReturn struct {
 func (s *appServer) saveHandler(hsctx *fasthttp.RequestCtx) {
 
 	var jse JSONSaveElem
-	var jsr []interface{}
+	var jsr map[string]interface{}
 	var qryname, sjson string
 	var err error
 	var b []byte
