@@ -96,6 +96,7 @@ func timedserve(appPath string, cfg *appServerConfig) {
 		LogInfo("Timed server closing in error")
 		as.stop()
 	} else {
+		LogInfof("Timed server starting, live for %d mins", as.cfg.Generic.Timedserver_mins)
 		time.Sleep(time.Duration(as.cfg.Generic.Timedserver_mins) * time.Minute)
 		LogInfo("a fechar timed server")
 		as.stop()
