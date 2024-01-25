@@ -1,51 +1,47 @@
-package main 
+package main
 
 import (
-	"os"
+	"flag"
 	"log"
 	"net"
-	"time"
-	"flag"
+	"os"
 	"path/filepath"
-	//"fmt"
-	//"errors"
-	"io/ioutil"
+	"time"
+
 	"encoding/json"
+
+	"github.com/jackc/pgx"
 	"github.com/kardianos/service"
 	"gopkg.in/natefinch/lumberjack.v2" // logging
-	"github.com/jackc/pgx"
-	//"github.com/fasthttp-contrib/websocket"
 )
 
-//var ADDR_WS string = ":8094"
+// var ADDR_WS string = ":8094"
 var DBCONNCFG = "\\dbconn_config.json"
 var DBSQLSTATMTS = "\\sqlstatements.yaml"
 var DBINITSMTGRP = "initprepared"
-var LOG_MAXSIZE =   1 // megabytes
+var LOG_MAXSIZE = 1 // megabytes
 var LOG_MAXBACKUPS = 5
 var LOG_MAXAGE = 28 //days
 //var SRVROOT = "C:\\www\\docsplat"
 
-
 type appServerConfig struct {
 	Generic struct {
-		Addr_hs string `json:"addr_hs"`
-		Logpath string `json:"logpath"`
-		Shutddelay_secs int `json:"shutddelay_secs"`
-		Timedserver_mins int `json:"timedserver_mins"`
+		Addr_hs          string `json:"addr_hs"`
+		Logpath          string `json:"logpath"`
+		Shutddelay_secs  int    `json:"shutddelay_secs"`
+		Timedserver_mins int    `json:"timedserver_mins"`
 	} `json:"generic"`
 }
 
 type appServer struct {
 	http_listener net.Listener
-	appPath string
-	cfg *appServerConfig
+	appPath       string
+	cfg           *appServerConfig
 
 	//ws_listener net.Listener
 	db_connpool *pgx.ConnPool
 	//ws_upgrader websocket.Upgrader
 }
-
 
 func (s *appServer) Start(svc service.Service) error {
 	// Start should not block. Do the actual work async.
@@ -55,20 +51,20 @@ func (s *appServer) Start(svc service.Service) error {
 }
 
 func (s *appServer) run() error {
-	
+
 	var err error
-	
-	s.db_connpool, err = DoPoolConnect(s.appPath + DBCONNCFG, s.appPath + DBSQLSTATMTS, DBINITSMTGRP)
+
+	s.db_connpool, err = DoPoolConnect(s.appPath+DBCONNCFG, s.appPath+DBSQLSTATMTS, DBINITSMTGRP)
 	if err != nil {
 		LogCriticalf("database: FATAL error, no connection: %s", err)
 	} else {
-		
-		err, s.http_listener = AsyncListenAndServe(s.cfg.Generic.Addr_hs, s.hsmux, time.Duration(s.cfg.Generic.Shutddelay_secs) * time.Second, "HTTP")
+
+		err, s.http_listener = AsyncListenAndServe(s.cfg.Generic.Addr_hs, s.hsmux, time.Duration(s.cfg.Generic.Shutddelay_secs)*time.Second, "HTTP")
 		if err != nil {
 			LogCriticalf("httpserver: FATAL error in AsyncListenAndServe: %s", err)
 		}
 	}
-	
+
 	/* REMOVER para ter WebSockets
 	s.prepareWebsockets()
 
@@ -77,7 +73,7 @@ func (s *appServer) run() error {
 		LogCriticalf("wsockserver: FATAL error in AsyncListenAndServe: %s", err)
 	}
 	* */
-	
+
 	return err
 }
 
@@ -94,7 +90,7 @@ func (s *appServer) Stop(svc service.Service) error {
 }
 
 func timedserve(appPath string, cfg *appServerConfig) {
-	as := &appServer{ appPath: appPath, cfg: cfg }
+	as := &appServer{appPath: appPath, cfg: cfg}
 	err := as.run()
 	if err != nil {
 		LogInfo("Timed server closing in error")
@@ -107,14 +103,14 @@ func timedserve(appPath string, cfg *appServerConfig) {
 }
 
 func serviceMain(appPath string, cfg *appServerConfig) {
-	
+
 	svcConfig := &service.Config{
-		Name:   "fast HTTP Service",
+		Name: "fast HTTP Service",
 		/*DisplayName: "XXXXX",
 		Description: "yYYYYYYYY",*/
 	}
 
-	prg := &appServer{ appPath: appPath, cfg: cfg}
+	prg := &appServer{appPath: appPath, cfg: cfg}
 	s, err := service.New(prg, svcConfig)
 	if err != nil {
 		LogError(err.Error())
@@ -126,69 +122,68 @@ func serviceMain(appPath string, cfg *appServerConfig) {
 	}
 }
 
-
 func main() {
-	
+
 	var noservice bool
 	var err error
 	var raw []byte
 	var ex string
 	var cfg *appServerConfig
-	
-	flag.BoolVar(&noservice, "noservice", false, "como processo autonomo")	
+
+	flag.BoolVar(&noservice, "noservice", false, "como processo autonomo")
 	flag.Parse()
 
 	ex, err = os.Executable()
 	if err != nil {
 		panic(err)
 	}
-	exPath := filepath.Dir(ex)			
-	
-	raw, err = ioutil.ReadFile(exPath + "\\config.json")
+	exPath := filepath.Dir(ex)
+
+	raw, err = os.ReadFile(exPath + "\\config.json")
 	if err != nil {
 
 		log.SetOutput(&lumberjack.Logger{
 			Filename:   exPath + "\\paniclogger.txt",
-			MaxSize: LOG_MAXSIZE,
+			MaxSize:    LOG_MAXSIZE,
 			MaxBackups: LOG_MAXBACKUPS,
-			MaxAge: LOG_MAXAGE,
+			MaxAge:     LOG_MAXAGE,
 		})
-		
+
 		LogCriticalf("Startup: %s", err.Error())
-		
+
 	} else {
-	
+
 		cfg = &appServerConfig{}
 		err = json.Unmarshal(raw, cfg)
 		if err != nil {
-			
+
 			log.SetOutput(&lumberjack.Logger{
 				Filename:   exPath + "\\paniclogger.txt",
-				MaxSize: LOG_MAXSIZE,
+				MaxSize:    LOG_MAXSIZE,
 				MaxBackups: LOG_MAXBACKUPS,
-				MaxAge: LOG_MAXAGE,
+				MaxAge:     LOG_MAXAGE,
 			})
 			LogCriticalf("Startup, unmarshal error, config file %s: %v \n", filepath.Base("config.json"), err.Error())
-			
+
 		} else {
 
 			log.SetOutput(&lumberjack.Logger{
 				Filename:   exPath + cfg.Generic.Logpath,
-				MaxSize: LOG_MAXSIZE,
+				MaxSize:    LOG_MAXSIZE,
 				MaxBackups: LOG_MAXBACKUPS,
-				MaxAge: LOG_MAXAGE,
-			})	
-		}		
+				MaxAge:     LOG_MAXAGE,
+			})
+		}
 	}
-	
+
 	if err == nil {
-	
+
 		//noservice = true
-		if noservice { 
+		if noservice {
 			timedserve(exPath, cfg)
 		} else {
 			serviceMain(exPath, cfg)
 		}
-		
+
 	}
 }
