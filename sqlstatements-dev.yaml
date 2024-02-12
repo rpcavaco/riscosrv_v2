@@ -1,0 +1,19 @@
+---
+initprepared:
+  fullchunkcalc: >
+    select full_chunk_calc from riscov2_dev.full_chunk_calc($1, $2, $3, $4, $5, $6, $7)
+  getfeats: >
+    select quantize2json from riscov2_dev.quantize2json($1, $2, $3, $4, $5)
+  clrreq: >
+    select riscov2_dev.clrreq($1, $2)
+  doget: >
+    select do_get from riscov2_dev.do_get($1, $2, $3, $4, $5)
+  astats: >
+    select alphastats from risco_v2_dev.alphastats($1, $2)
+  binning: >
+    select binning from risco_v2_dev.binning($1, $2, $3)
+  save: >
+    select save from risco_v2_dev.save($1, $2, $3, $4, $5, $6)
+ 
+
+

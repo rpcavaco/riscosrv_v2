@@ -1,3 +1,5 @@
 *.ps1
+*.old.*
 build/
+build_windows/
 
