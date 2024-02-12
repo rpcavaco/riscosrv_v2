@@ -1,31 +1,22 @@
 package main
 
 import (
-	//"os"
 	"encoding/json"
 	"fmt"
 	"strconv"
 
-	//"regexp"
-	//"errors"
-	//"io/ioutil"
-
-	//"github.com/satori/go.uuid"
-
 	"github.com/jackc/pgx"
 	"github.com/valyala/fasthttp"
-
-	//"github.com/smallfish/simpleyaml"
-	//"github.com/fasthttp-contrib/websocket"
-
-	"golang.org/x/text/encoding/charmap"
 )
+
+/*
 
 func EncodeWindows1252(inp []byte) []byte {
 	enc := charmap.ISO8859_1.NewEncoder()
 	out, _ := enc.Bytes(inp)
 	return out
 }
+*/
 
 /*
 func validFileServerExtension(path string) bool {
@@ -130,7 +121,7 @@ func (s *appServer) featsHandler(hsctx *fasthttp.RequestCtx) {
 
 				} else {
 
-					fmt.Fprintf(hsctx, outj)
+					fmt.Fprint(hsctx, outj)
 					hsctx.SetContentType("application/json; charset=utf8")
 
 				}
@@ -194,7 +185,7 @@ func (s *appServer) statsHandler(hsctx *fasthttp.RequestCtx) {
 					LogErrorf("statsHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
 					hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
 				} else {
-					fmt.Fprintf(hsctx, outj)
+					fmt.Fprint(hsctx, outj)
 					hsctx.SetContentType("application/json; charset=utf8")
 				}
 			}
@@ -394,7 +385,7 @@ func (s *appServer) saveHandler(hsctx *fasthttp.RequestCtx) {
 
 							} else {
 
-								fmt.Fprintf(hsctx, string(b))
+								fmt.Fprint(hsctx, string(b))
 								hsctx.SetContentType("text/plain; charset=utf8")
 
 							}
@@ -447,7 +438,7 @@ func (s *appServer) doGetHandler(hsctx *fasthttp.RequestCtx) {
 				LogErrorf("doGetHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
 				hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
 			} else {
-				fmt.Fprintf(hsctx, string(outj))
+				fmt.Fprint(hsctx, string(outj))
 				hsctx.SetContentType("application/json; charset=utf8")
 			}
 		}
@@ -494,13 +485,14 @@ func (s *appServer) alphaStatsHandler(hsctx *fasthttp.RequestCtx) {
 				LogErrorf("alphaStatsHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
 				hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
 			} else {
-				fmt.Fprintf(hsctx, string(outj))
+				fmt.Fprint(hsctx, string(outj))
 				hsctx.SetContentType("application/json; charset=utf8")
 			}
 		}
 	}
 }
 
+/*
 type binnParamsElem struct {
 	Key      string  `json:"key"`
 	Geomtype string  `json:"geomtype"`
@@ -544,6 +536,8 @@ func (s *appServer) binningHandler(hsctx *fasthttp.RequestCtx) {
 		}
 	}
 }
+
+*/
 
 func (s *appServer) testRequestHandler(hsctx *fasthttp.RequestCtx) {
 

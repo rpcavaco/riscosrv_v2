@@ -115,11 +115,11 @@ func doServe(s *fasthttp.Server, ln net.Listener, purpose string) {
 
 // Cria um servidor HTTP na endereço indicado em addr.
 // Devolve um net.Listener ao qual se pode aplicar o método Close para terminar o servidor.
-//  - purpose: HTTP, WebSocket (string informativa do objectivo do servidor)
-func AsyncListenAndServe(addr string, handler fasthttp.RequestHandler, maxWaitTime time.Duration, purpose string) (error, net.Listener) {
+//   - purpose: HTTP, WebSocket (string informativa do objectivo do servidor)
+func AsyncListenAndServe(addr string, handler fasthttp.RequestHandler, maxWaitTime time.Duration, purpose string) (net.Listener, error) {
 	ln, err := net.Listen("tcp4", addr)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	gln := newGracefulListener(ln, maxWaitTime)
 	s := &fasthttp.Server{
@@ -128,7 +128,7 @@ func AsyncListenAndServe(addr string, handler fasthttp.RequestHandler, maxWaitTi
 	LogInfof("starting fasthttp server on %s (%s)", addr, purpose)
 	go doServe(s, gln, purpose)
 
-	return err, gln
+	return gln, err
 }
 
 /*func CompressHandlerLevel(s *appServer, h fasthttp.RequestHandler) RequestHandler2 {
