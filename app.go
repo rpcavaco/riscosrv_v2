@@ -18,52 +18,11 @@ func EncodeWindows1252(inp []byte) []byte {
 }
 */
 
-/*
-func validFileServerExtension(path string) bool {
-
-	var ret bool = false
-
-	if path == "/" {
-		return true
-	}
-
-	lowerpath := strings.ToLower(path)
-
-	htmpatt := regexp.MustCompile("\\.(htm[l]?|json)$")
-	imgpatt := regexp.MustCompile("\\.(jp[e]?g|png|gif|tif[f]?)$")
-	webpatt := regexp.MustCompile("\\.(svg|js|css|ttf)$")
-	pltxtpatt := regexp.MustCompile("\\.(txt|md|mkd|csv)$")
-
-	switch {
-		case htmpatt.MatchString(lowerpath):
-			ret = true
-		case imgpatt.MatchString(lowerpath):
-			ret = true
-		case webpatt.MatchString(lowerpath):
-			ret = true
-		case pltxtpatt.MatchString(lowerpath):
-			ret = true
-	}
-
-	return ret
-
+func (s *appServer) addCORSHeaders(hsctx *fasthttp.RequestCtx) {
+	hsctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
+	hsctx.Response.Header.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	hsctx.Response.Header.Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 }
-
-
-// HTTP Server
-
-var fs *fasthttp.FS = &fasthttp.FS{
-		Root:               SRVROOT,
-		IndexNames:         []string{"index.html"},
-		GenerateIndexPages: false,
-		Compress:           false,
-		AcceptByteRange:    false,
-	}
-
-
-
-var fsHandler func(hsctx *fasthttp.RequestCtx) = fs.NewRequestHandler()
-*/
 
 func (s *appServer) featsHandler(hsctx *fasthttp.RequestCtx) {
 
@@ -123,6 +82,7 @@ func (s *appServer) featsHandler(hsctx *fasthttp.RequestCtx) {
 
 					fmt.Fprint(hsctx, outj)
 					hsctx.SetContentType("application/json; charset=utf8")
+					s.addCORSHeaders(hsctx)
 
 				}
 			}
@@ -187,105 +147,13 @@ func (s *appServer) statsHandler(hsctx *fasthttp.RequestCtx) {
 				} else {
 					fmt.Fprint(hsctx, outj)
 					hsctx.SetContentType("application/json; charset=utf8")
+					s.addCORSHeaders(hsctx)
 				}
 			}
 		}
 
 	}
 }
-
-/*
-type gJSONSaveElem struct {
-	Lname     string `json:"lname"`
-	Gisid     string `json:"gisid"`
-	SessionId string `json:"sessionid"`
-	Crs       int    `json:"crs"`
-	Gjson     struct {
-		Type     string `json:"type"`
-		Geometry struct {
-			Type        string    `json:"type"`
-			Coordinates []float64 `json:"coordinates"`
-		} `json:"geometry"`
-	} `json:"gjson"`
-}
-
-func (s *appServer) saveHandlerOld(hsctx *fasthttp.RequestCtx) {
-
-	var gj gJSONSaveElem
-	var qryname, sgjson, gid string
-	var err error
-	var b []byte
-	var tx *pgx.Tx
-
-	if string(hsctx.Method()) == "OPTIONS" {
-
-		fmt.Fprintf(hsctx, "ok")
-		hsctx.SetContentType("text/plain; charset=utf8")
-
-	} else {
-
-		LogInfof("saveHandler, body:'%s'", hsctx.PostBody())
-
-		if err = json.Unmarshal(hsctx.PostBody(), &gj); err != nil {
-
-			LogErrorf("geojsonSaveHandler generic unmarshal error: %s body:'%s'", err.Error(), hsctx.PostBody())
-			hsctx.Error("unmarshal error", fasthttp.StatusInternalServerError)
-
-		} else {
-
-			rub := hsctx.Request.Header.Peek("Remote-User")
-			ru := string(rub)
-
-			qryname = "initprepared.save"
-
-			b, err = json.Marshal(gj.Gjson)
-			if err != nil {
-
-				LogErrorf("geojson marshaling error %s", err.Error())
-				hsctx.Error("geojson marshaling error", fasthttp.StatusInternalServerError)
-
-			} else {
-
-				sgjson = string(b)
-				LogTwitf("lname:%s  gisid:%s session:%s gjson:%s ru:%s", gj.Lname, gj.Gisid, gj.SessionId, sgjson, ru)
-
-				// Abrir transacção
-				tx, err = s.db_connpool.Begin()
-				if err != nil {
-
-					LogErrorf("geojsonInsert open transaction error %s", err.Error())
-					hsctx.Error("transaction begin error", fasthttp.StatusInternalServerError)
-
-				} else {
-
-					defer tx.Rollback()
-
-					// inserir local
-					row := s.db_connpool.QueryRow(qryname, gj.Lname, gj.Gisid, gj.SessionId, ru, sgjson)
-					err = row.Scan(&gid)
-					if err != nil {
-						LogErrorf("geojsonSaveHandler error %s, stmt name: '%s'", err.Error(), qryname)
-						hsctx.Error("db error", fasthttp.StatusInternalServerError)
-					} else {
-						// Fechar transacção
-						err = tx.Commit()
-						if err != nil {
-							LogErrorf("geojsonSaveHandler commit transaction error %s", err.Error())
-							hsctx.Error("commit error error", fasthttp.StatusInternalServerError)
-						} else {
-							fmt.Fprintf(hsctx, gid)
-							hsctx.SetContentType("text/plain; charset=utf8")
-						}
-					}
-
-				}
-
-			}
-
-		}
-	}
-}
-*/
 
 type JSONSaveElem struct {
 	Lname       string `json:"lname"`
@@ -387,6 +255,7 @@ func (s *appServer) saveHandler(hsctx *fasthttp.RequestCtx) {
 
 								fmt.Fprint(hsctx, string(b))
 								hsctx.SetContentType("text/plain; charset=utf8")
+								s.addCORSHeaders(hsctx)
 
 							}
 
@@ -440,6 +309,7 @@ func (s *appServer) doGetHandler(hsctx *fasthttp.RequestCtx) {
 			} else {
 				fmt.Fprint(hsctx, string(outj))
 				hsctx.SetContentType("application/json; charset=utf8")
+				s.addCORSHeaders(hsctx)
 			}
 		}
 	}
@@ -487,6 +357,7 @@ func (s *appServer) alphaStatsHandler(hsctx *fasthttp.RequestCtx) {
 			} else {
 				fmt.Fprint(hsctx, string(outj))
 				hsctx.SetContentType("application/json; charset=utf8")
+				s.addCORSHeaders(hsctx)
 			}
 		}
 	}
