@@ -17,7 +17,7 @@ It's intended to connect to a PostgreSQL / PostGIS backend. In order to be prope
 
 To run it just type ...
 
-		./riscosrv_v2
+	./riscosrv_v2
 
 ... and hit &lt;enter&gt;
 
@@ -30,7 +30,7 @@ It's easy to find documentation to create a systemd service from any executable,
 
 It's easy to use command line utility *sc.exe* to create a new entry in Windows Services panel. Just follow these steps:
 
-1. Edit the contents of file 'install_win_service.bat' according to your needs
+1. edit the contents of file 'install_win_service.bat' according to your needs
 2. run it
 
 When finished, there will be a new entry in Windows Services, using whatever is written in the *displayname* parameter in the file.
