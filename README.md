@@ -43,14 +43,14 @@ Configuration files are JSON and are supposed to be placed in same folder as as 
 
 Generic config is kept on **config.json** file. Some sample contents:
 
-		{
-			"generic": {
-				"addr_hs": ":8020",	
-				"logpath": "log/log.txt",
-				"shutddelay_secs": 5,
-				"timedserver_mins": 20
-			}
+	{
+		"generic": {
+			"addr_hs": ":8020",	
+			"logpath": "log/log.txt",
+			"shutddelay_secs": 5,
+			"timedserver_mins": 20
 		}
+	}
 
 Parameters
 
@@ -65,14 +65,14 @@ Currently RISCO server works only with PostgreSQL / PostGIS.
 
 Database connection configuration is stored on a file called **dbconn_config.json**. Some sample contents:
 
-		{
-			"user": "risco_v2",
-			"password": "xxxxyyy",
-			"host": "localhost",
-			"port": 5432,
-			"database": "mydata",
-			"maxConnections": 4
-		}
+	{
+		"user": "risco_v2",
+		"password": "xxxxyyy",
+		"host": "localhost",
+		"port": 5432,
+		"database": "mydata",
+		"maxConnections": 4
+	}
 
 Parameters:
 
@@ -83,5 +83,3 @@ Parameters:
 - database: database name
 - maxConnections: number of max concurrent connections
 
-> [!WARNING]  
-> Workshop containers are not ready for Windows environment, due to the use of unsupported --net=host parameter
