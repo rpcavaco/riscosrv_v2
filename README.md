@@ -26,7 +26,7 @@ It's easy to find documentation to create a systemd service from any executable,
 > [!IMPORTANT]
 > In order to use RISCO server, DON'T FORGET  to provide a valid [configuration](#configuration).
 
-## Use as Window Service
+## Use as a Window Service
 
 It's easy to use command line utility *sc.exe* to create a new entry in Windows Services panel. Just follow these steps:
 
