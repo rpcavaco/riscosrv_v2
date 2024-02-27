@@ -11,7 +11,7 @@ It's intended to connect to a PostgreSQL / PostGIS backend. In order to be prope
 ## Installation
 
 1. create a folder and 'cd' to it
-2. fork this repository into that folder
+2. clone this repository into that folder
 3. using a terminal opened on this folder run ./build.sh (or build.bat if you are in Windows)
 4. create a subfolder called 'log'
 
