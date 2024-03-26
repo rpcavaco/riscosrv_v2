@@ -14,6 +14,8 @@ initprepared:
     select binning from riscov2_dev.binning($1, $2, $3)
   save: >
     select save from riscov2_dev.save($1, $2, $3, $4, $5)
+  locateelem: >
+    select locateelem from riscov2_dev.locateelem($1, $2, $3)  
  
 
 

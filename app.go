@@ -416,6 +416,52 @@ func (s *appServer) testRequestHandler(hsctx *fasthttp.RequestCtx) {
 	hsctx.SetContentType("text/plain; charset=utf8")
 }
 
+type locateElemElem struct {
+	Mapname string `json:"mapname"`
+	Lname   string `json:"lname"`
+	Gisid   string `json:"gisid"`
+}
+
+func (s *appServer) locateElemHandler(hsctx *fasthttp.RequestCtx) {
+
+	var lee locateElemElem
+	var qryname string //, sgjson, gid string
+	var outj []byte
+	var err error
+
+	if string(hsctx.Method()) == "OPTIONS" {
+
+		fmt.Fprintf(hsctx, "ok")
+		hsctx.SetContentType("text/plain; charset=utf8")
+
+	} else {
+
+		LogInfof("locateElemHandler, body:'%s'", hsctx.PostBody())
+
+		if err = json.Unmarshal(hsctx.PostBody(), &lee); err != nil {
+
+			LogErrorf("locateElemHandler generic unmarshal error: %s body:'%s'", err.Error(), hsctx.PostBody())
+			hsctx.Error("unmarshal error", fasthttp.StatusInternalServerError)
+
+		} else {
+
+			qryname = "initprepared.locateelem"
+
+			row := s.db_connpool.QueryRow(qryname, lee.Mapname, lee.Lname, lee.Gisid)
+			err := row.Scan(&outj)
+			if err != nil {
+				LogErrorf("locateElemHandler dbquery return read error %s, stmt name: '%s'", err.Error(), qryname)
+				hsctx.Error("dbquery return read error", fasthttp.StatusInternalServerError)
+			} else {
+				fmt.Fprint(hsctx, string(outj))
+				hsctx.SetContentType("application/json; charset=utf8")
+				s.addCORSHeaders(hsctx)
+			}
+		}
+	}
+
+}
+
 func (s *appServer) hsmux(hsctx *fasthttp.RequestCtx) {
 	LogTwitf("acesso HTTP: %s", hsctx.Path())
 	switch string(hsctx.Path()) {
@@ -431,6 +477,8 @@ func (s *appServer) hsmux(hsctx *fasthttp.RequestCtx) {
 		s.alphaStatsHandler(hsctx)
 	case "/save":
 		s.saveHandler(hsctx)
+	case "/locateelem":
+		s.locateElemHandler(hsctx)
 	/*case "/gjsonsave":
 		s.geojsonSaveHandler(hsctx, true)
 	case "/gjsonsaveg":

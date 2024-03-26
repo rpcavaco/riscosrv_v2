@@ -3,4 +3,6 @@
 build/
 build_windows/
 go.mod
-
+*.exe
+riscosrv_version.txt
+go.sum
