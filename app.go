@@ -173,12 +173,6 @@ type JSONSaveElem struct {
 	} `json:"featholders"`
 }
 
-type JSONSaveReturn struct {
-	State  string `json:"state"`
-	Gisid  string `json:"gisid,omitempty"`
-	Reason string `json:"reason,omitempty"`
-}
-
 func (s *appServer) saveHandler(hsctx *fasthttp.RequestCtx) {
 
 	var jse JSONSaveElem
@@ -363,6 +357,187 @@ func (s *appServer) alphaStatsHandler(hsctx *fasthttp.RequestCtx) {
 	}
 }
 
+type InsertSelElem struct {
+	Selname string `json:"selname"`
+	Seldata struct {
+		Desc  string `json:"desc"`
+		Elems []struct {
+			Gisid    string `json:"gisid"`
+			Gislabel string `json:"gislabel"`
+		} `json:"elems"`
+	} `json:"seldata"`
+}
+
+func (s *appServer) insertselHandler(hsctx *fasthttp.RequestCtx) {
+
+	var ise InsertSelElem
+	var jsr map[string]interface{}
+	var qryname, sjson string
+	var err error
+	var b []byte
+	var tx *pgx.Tx
+
+	if string(hsctx.Method()) == "OPTIONS" {
+
+		fmt.Fprintf(hsctx, "ok")
+		hsctx.SetContentType("text/plain; charset=utf8")
+
+	} else {
+
+		LogInfof("insertselHandler, body:'%s'", hsctx.PostBody())
+
+		if err = json.Unmarshal(hsctx.PostBody(), &ise); err != nil {
+
+			LogErrorf("saveHandler generic unmarshal error: %s body:'%s'", err.Error(), hsctx.PostBody())
+			hsctx.Error("unmarshal error", fasthttp.StatusInternalServerError)
+
+		} else {
+
+			qryname = "initprepared.insertsel"
+
+			b, err = json.Marshal(ise.Seldata)
+			if err != nil {
+
+				LogErrorf("json feature marshaling error %s", err.Error())
+				hsctx.Error("json feature marshaling error", fasthttp.StatusInternalServerError)
+
+			} else {
+
+				sjson = string(b)
+				LogTwitf("selname:%s payload:%s", ise.Selname, sjson)
+
+				// Abrir transacção
+				tx, err = s.db_connpool.Begin()
+				if err != nil {
+
+					LogErrorf("json insert open transaction error %s", err.Error())
+					hsctx.Error("transaction begin error", fasthttp.StatusInternalServerError)
+
+				} else {
+
+					defer tx.Rollback()
+
+					// inserir local
+					row := s.db_connpool.QueryRow(qryname, ise.Selname, sjson)
+					err = row.Scan(&jsr)
+					if err != nil {
+						LogErrorf("insertselHandler error %s, stmt name: '%s'", err.Error(), qryname)
+						hsctx.Error("db error", fasthttp.StatusInternalServerError)
+					} else {
+						// Fechar transacção
+						err = tx.Commit()
+						if err != nil {
+							LogErrorf("insertselHandler commit transaction error %s", err.Error())
+							hsctx.Error("commit error error", fasthttp.StatusInternalServerError)
+						} else {
+
+							b, err = json.Marshal(jsr)
+							if err != nil {
+
+								LogErrorf("insertselHandler response marshaling error %s", err.Error())
+								hsctx.Error("json save response marshaling error", fasthttp.StatusInternalServerError)
+
+							} else {
+
+								fmt.Fprint(hsctx, string(b))
+								hsctx.SetContentType("text/plain; charset=utf8")
+								s.addCORSHeaders(hsctx)
+
+							}
+
+						}
+					}
+
+				}
+
+			}
+
+		}
+	}
+}
+
+type GetSelElem struct {
+	Selname string `json:"selname"`
+	Selcode string `json:"selcode"`
+}
+
+func (s *appServer) getselHandler(hsctx *fasthttp.RequestCtx) {
+
+	var gse GetSelElem
+	var jsr map[string]interface{}
+	var qryname string
+	var err error
+	var b []byte
+	var tx *pgx.Tx
+
+	if string(hsctx.Method()) == "OPTIONS" {
+
+		fmt.Fprintf(hsctx, "ok")
+		hsctx.SetContentType("text/plain; charset=utf8")
+
+	} else {
+
+		LogInfof("insertselHandler, body:'%s'", hsctx.PostBody())
+
+		if err = json.Unmarshal(hsctx.PostBody(), &gse); err != nil {
+
+			LogErrorf("saveHandler generic unmarshal error: %s body:'%s'", err.Error(), hsctx.PostBody())
+			hsctx.Error("unmarshal error", fasthttp.StatusInternalServerError)
+
+		} else {
+
+			qryname = "initprepared.getsel"
+
+			LogTwitf("selname:%s payload:%s", gse.Selname, gse.Selcode)
+
+			// Abrir transacção
+			tx, err = s.db_connpool.Begin()
+			if err != nil {
+
+				LogErrorf("json insert open transaction error %s", err.Error())
+				hsctx.Error("transaction begin error", fasthttp.StatusInternalServerError)
+
+			} else {
+
+				defer tx.Rollback()
+
+				// inserir local
+				row := s.db_connpool.QueryRow(qryname, gse.Selname, gse.Selcode)
+				err = row.Scan(&jsr)
+				if err != nil {
+					LogErrorf("insertselHandler error %s, stmt name: '%s'", err.Error(), qryname)
+					hsctx.Error("db error", fasthttp.StatusInternalServerError)
+				} else {
+					// Fechar transacção
+					err = tx.Commit()
+					if err != nil {
+						LogErrorf("insertselHandler commit transaction error %s", err.Error())
+						hsctx.Error("commit error error", fasthttp.StatusInternalServerError)
+					} else {
+
+						b, err = json.Marshal(jsr)
+						if err != nil {
+
+							LogErrorf("insertselHandler response marshaling error %s", err.Error())
+							hsctx.Error("json save response marshaling error", fasthttp.StatusInternalServerError)
+
+						} else {
+
+							fmt.Fprint(hsctx, string(b))
+							hsctx.SetContentType("text/plain; charset=utf8")
+							s.addCORSHeaders(hsctx)
+
+						}
+
+					}
+				}
+
+			}
+
+		}
+	}
+}
+
 /*
 type binnParamsElem struct {
 	Key      string  `json:"key"`
@@ -479,12 +654,11 @@ func (s *appServer) hsmux(hsctx *fasthttp.RequestCtx) {
 		s.saveHandler(hsctx)
 	case "/locateelem":
 		s.locateElemHandler(hsctx)
-	/*case "/gjsonsave":
-		s.geojsonSaveHandler(hsctx, true)
-	case "/gjsonsaveg":
-		s.geojsonSaveHandler(hsctx, false)
-	*/
-	//
+	case "/insertsel":
+		s.insertselHandler(hsctx)
+	case "/getsel":
+		s.getselHandler(hsctx)
+
 	default:
 		/*if validFileServerExtension(string(hsctx.Path())) {
 			fsHandler(hsctx)

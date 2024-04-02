@@ -16,6 +16,10 @@ initprepared:
     select save from riscov2_dev.save($1, $2, $3, $4, $5)
   locateelem: >
     select locateelem from riscov2_dev.locateelem($1, $2, $3)  
+  insertsel: >
+    select insertsel from riscov2_dev.insertsel($1, $2)      
+  getsel: >
+    select getsel from riscov2_dev.getsel($1, $2)      
  
 
 
